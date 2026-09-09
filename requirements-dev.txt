@@ -1,0 +1,11 @@
+-r requirements.txt
+
+# Versionnement des données
+dvc>=3.60.0
+# Remotes DVC (installer selon le backend choisi) :
+# dvc-gdrive     # Google Drive
+# dvc-s3         # S3 / R2 / MinIO
+# dvc-ssh        # serveur SSH
+
+# Qualité de code
+ruff>=0.6.0

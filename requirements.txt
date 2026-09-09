@@ -1,0 +1,29 @@
+# Dépendances du projet SAAR (corpus + outils NLP pour le sar)
+# Python 3.12+
+
+# --- Extraction des sources ---
+playwright>=1.40.0
+beautifulsoup4>=4.12.0
+pymupdf>=1.23.0
+pdfplumber>=0.11.0
+
+# --- Traitement des données ---
+jsonlines>=4.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+regex>=2024.0.0
+tqdm>=4.66.0
+
+# --- Analyse / tokenisation (scripts/eval_tokenizers.py, scripts/tokenize.py) ---
+transformers>=4.44.0
+tokenizers>=0.20.0
+sentencepiece>=0.2.0
+sacremoses>=0.1.0
+
+# --- Entraînement des modèles ---
+# Lourd, exécuté sur Colab/Kaggle — voir notebooks/finetune_nllb_sar.ipynb
+# torch>=2.2.0
+# peft>=0.11.0
+# datasets>=2.20.0
+# evaluate>=0.4.0
+# sacrebleu>=2.4.0

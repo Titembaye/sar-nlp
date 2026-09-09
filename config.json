@@ -1,0 +1,78 @@
+{
+  "project": {
+    "name": "Corpus Saar pour Machine Learning",
+    "version": "0.1.0",
+    "description": "Dataset multilingue Français ↔ Saar pour traduction et NLP",
+    "created": "2026-06-06"
+  },
+  "languages": {
+    "primary": "sar",
+    "secondary": "fra",
+    "encoding": "UTF-8"
+  },
+  "sources": [
+    {
+      "id": "sardc_bible",
+      "name": "Bible Saar (SARDC)",
+      "type": "religious_text",
+      "format": "jsonl",
+      "status": "processed",
+      "estimated_entries": 32000,
+      "license": "© Alliance Biblique du Tchad, 2006, 2010 — NON redistribuable",
+      "path": "data/raw/bible/sardc_corpus.jsonl",
+      "notes": "Versets avec références (book, chapter, verse). 8726 paires FR-SAR alignées."
+    },
+    {
+      "id": "cosmogonie_sar",
+      "name": "Cosmogonie Saar",
+      "type": "traditional_text",
+      "format": "pdf",
+      "status": "processed",
+      "estimated_entries": 2000,
+      "license": "© OSSEC 2015 — autorisation ayants droit requise",
+      "path": "data/raw/cosmogonie/mwm_Cosmogonie_Sar_2015.pdf",
+      "notes": "Texte rituel/mythologique. 247 phrases monolingues Sar extraites."
+    },
+    {
+      "id": "sar_dictionary",
+      "name": "Dictionnaire Saar",
+      "type": "lexicon",
+      "format": "pdf",
+      "status": "processed",
+      "estimated_entries": 5000,
+      "license": "Dictionnaire Sar (Keegan & Gotengaye) — licence à clarifier avec les auteurs",
+      "path": "data/raw/dictionary/sar_dictionary.pdf",
+      "notes": "3159 entrées, 3193 paires d'exemples FR-SAR extraites (CMaps PDF corrigées)."
+    }
+  ],
+  "processing": {
+    "normalization": {
+      "unicode_nfc": true,
+      "preserve_diacritics": true,
+      "lowercase": false
+    },
+    "quality_filters": {
+      "min_length_tokens": 2,
+      "max_length_tokens": 200,
+      "remove_empty": true
+    },
+    "alignment": {
+      "strategy": "manual_curated",
+      "method": "bidirectional"
+    }
+  },
+  "output_format": "jsonl",
+  "output_schema": {
+    "id": "unique_identifier",
+    "source": "source_id",
+    "language_pair": "fra-sar",
+    "french": "texte en français",
+    "saar": "texte en Saar",
+    "metadata": {
+      "book": "optional",
+      "chapter": "optional",
+      "verse": "optional",
+      "context": "optional"
+    }
+  }
+}

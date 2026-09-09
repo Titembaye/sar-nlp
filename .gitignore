@@ -1,0 +1,54 @@
+# ---- Environnements Python ----
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+
+# ---- Secrets / config locale ----
+.env
+.env.local
+*.local
+
+# ---- Caches Python / notebooks ----
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+.ruff_cache/
+.mypy_cache/
+
+# ---- IDE / OS ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ---- Modèles / checkpoints entraînés (volumineux, régénérables) ----
+models/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.gguf
+
+# ---- Sorties temporaires ----
+*.log
+.cache/
+tmp_*
+scratch/
+outputs/
+wandb/
+
+# ---- Données ----
+# Les gros fichiers et données sous droits sont suivis par DVC :
+# voir data/*.dvc (dans git) et data/.gitignore (généré par DVC).
+# data/samples/ et data/README.md restent dans git.
+
+# ---- Exclus du repo pour l'instant (à trancher — cf. ROADMAP Phase 0) ----
+/run.py
+/docs/STRUCTURE.md

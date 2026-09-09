@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "SAAR — corpus et outils NLP pour le sar (langue sara, Tchad)"
+abstract: >-
+  Construction d'un corpus parallèle sar-français et d'outils de traitement
+  automatique des langues (tokenisation, traduction automatique, modèles de
+  langue) pour le sar, langue à faibles ressources parlée au Tchad.
+type: software
+authors:
+  - family-names: "Titembaye"        # TODO: prénom + nom légal complets
+    given-names: ""
+    email: "nkamdaou@gmail.com"
+keywords:
+  - "traitement automatique des langues"
+  - "langues à faibles ressources"
+  - "traduction automatique"
+  - "sar"
+  - "langues sara"
+  - "Tchad"
+license: MIT
+repository-code: "https://github.com/Titembaye/saar"   # TODO: URL finale (org + nom du repo)
