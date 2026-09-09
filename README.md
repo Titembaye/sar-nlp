@@ -83,11 +83,11 @@ licence différentes, déploiements indépendants) :
 | Dépôt | Rôle | Stack |
 |---|---|---|
 | **`sar-nlp`** (ici) | recherche : corpus, tokenisation, modèles, évaluation | Python |
-| `khalima-backend` | API de la plateforme d'annotation **DATA4CHAD** | Django + PostgreSQL |
-| `khalima-frontend` | interface d'annotation (multi-granularité, bidirectionnelle, clavier sar) | React / Vite |
+| [`khalima-backend`](https://github.com/Titembaye/khalima-backend) | API de la plateforme d'annotation **DATA4CHAD** | Django + PostgreSQL |
+| [`khalima-frontend`](https://github.com/Titembaye/khalima-frontend) | interface d'annotation (multi-granularité, bidirectionnelle, clavier sar) | React / Vite |
 
-DATA4CHAD sert à collecter et corriger les traductions à la main ; ses CSV alimentent
-`data/annotation_ready/` de ce dépôt.
+DATA4CHAD ([data4chad.vercel.app](https://data4chad.vercel.app)) sert à collecter et
+corriger les traductions à la main ; ses CSV alimentent `data/annotation_ready/` de ce dépôt.
 
 ```
 sar-nlp/
