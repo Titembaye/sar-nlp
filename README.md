@@ -16,7 +16,7 @@ généralisation à une autre langue sara-baguirmienne.
 Projet de thèse complet : [`docs/projet_these.pdf`](docs/projet_these.pdf).
 Ce dépôt en est le socle de données et d'expérimentation.
 
-## Le problème, mesuré
+## Prémiers Tets
 
 Première étape : mesurer comment les tokeniseurs pré-entraînés se comportent sur le sar
 ([`scripts/eval_tokenizers.py`](scripts/eval_tokenizers.py) ; rapport dans
