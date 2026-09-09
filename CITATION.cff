@@ -1,10 +1,12 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite it as below."
-title: "sar-nlp — corpus et outils TAL pour le sar (langue sara, Tchad)"
+title: "sar-nlp — corpus et outils pour la tokenisation du sar (mwm, Tchad)"
 abstract: >-
-  Construction d'un corpus parallèle sar-français et d'outils de traitement
-  automatique des langues (tokenisation, traduction automatique, modèles de
-  langue) pour le sar, langue à faibles ressources parlée au Tchad.
+  Corpus, code et résultats préliminaires d'une thèse sur la tokenisation
+  morphologique et tonale du sar (ISO 639-3 mwm), langue sara à faibles ressources
+  du sud du Tchad : construction d'un corpus sar-français et sar monolingue,
+  évaluation des tokeniseurs existants, méthode de segmentation informée par la
+  morphologie et le système tonal.
 type: software
 authors:
   - family-names: "Djiraikinan Titembaye"
@@ -13,10 +15,11 @@ authors:
     orcid: "https://orcid.org/0009-0000-0877-7496"
 keywords:
   - "traitement automatique des langues"
+  - "tokenisation"
   - "langues à faibles ressources"
-  - "traduction automatique"
+  - "langues tonales"
   - "sar"
-  - "langues sara"
+  - "langues sara-baguirmiennes"
   - "Tchad"
 license: MIT
 repository-code: "https://github.com/Titembaye/sar-nlp"

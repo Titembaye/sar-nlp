@@ -49,6 +49,10 @@ wandb/
 # voir data/*.dvc (dans git) et data/.gitignore (généré par DVC).
 # data/samples/ et data/README.md restent dans git.
 
+# ---- PDF : ignorés par défaut sauf le projet de thèse ----
+*.pdf
+!/docs/projet_these*.pdf
+
 # ---- Exclus du repo pour l'instant (à trancher — cf. ROADMAP Phase 0) ----
 /run.py
 /docs/STRUCTURE.md

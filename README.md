@@ -1,46 +1,26 @@
 # sar-nlp
 
-**sar-nlp** réunit des données textuelles — un corpus parallèle sar–français et un
-corpus sar monolingue — et des outils de traitement automatique des langues (TAL) pour
-le **sar**, une langue sara du Moyen-Chari, au sud du Tchad
-(ISO 639-3 [`sar`](https://iso639-3.sil.org/code/sar)). Ce dépôt sert de support à une
-proposition de projet de thèse.
+Corpus, code et premiers résultats pour une thèse de doctorat sur la **tokenisation
+morphologique et tonale** du **sar**, une langue sara du Moyen-Chari et du Mandoul, au
+sud du Tchad (ISO 639-3 [`mwm`](https://iso639-3.sil.org/code/mwm)).
 
-Le sar est très peu doté pour le TAL. Les sources écrites exploitables sont rares (une
-bible, un dictionnaire, quelques textes traditionnels), la langue est absente des
-grands modèles multilingues — dont les 200 langues de NLLB-200 —, et les tokeniseurs
-courants dégradent son orthographe latine, dense en tons et en voyelles nasales
-(voir [tokenisation](#ce-que-lanalyse-de-tokenisation-a-montré)). Le projet part de ces
-sources pour construire, étape par étape, un corpus propre puis des modèles de
-traduction et de langue utilisables, en produisant au passage les outils qui manquent.
+Les tokeniseurs statistiques (BPE, WordPiece, SentencePiece) construisent leur
+vocabulaire en optimisant la fréquence des sous-chaînes de caractères, sans aucune
+connaissance de la morphologie ni de la phonologie de la langue. En sar, où une même
+voyelle porte à la fois le timbre, la nasalité et le ton, ce découpage produit des
+unités linguistiquement incohérentes — et, avec les tokeniseurs pré-entraînés, détruit
+de l'information. La thèse propose de concevoir, valider et évaluer une méthode de
+tokenisation qui sépare et représente explicitement ces couches, puis d'en tester la
+généralisation à une autre langue sara-baguirmienne.
 
-Le dépôt contient le volet recherche : construction du corpus, analyse linguistique,
-tokenisation, modèles. La plateforme d'annotation qui l'alimente vit dans deux dépôts
-séparés (voir [Organisation](#organisation)).
+Projet de thèse complet : [`docs/projet_these.pdf`](docs/projet_these.pdf).
+Ce dépôt en est le socle de données et d'expérimentation.
 
-## Où en est le corpus — septembre 2026
+## Le problème, mesuré
 
-12 717 paires sar–français : 8 726 issues de la Bible, 3 193 du dictionnaire, 798 d'un
-lexique sara. Après retrait des doublons, environ 12 450 phrases sar distinctes.
-S'ajoutent 26 389 lignes de sar monolingue (~342 000 mots) et 100 000 phrases
-françaises de Tatoeba pour la rétro-traduction. Le vocabulaire sar observé compte
-~11 400 formes, dont 739 hapax ; les 2 000 formes les plus fréquentes couvrent 93 %
-des occurrences.
-
-Deux limites orientent tout le travail qui suit. Le corpus est petit — à cette échelle,
-NLLB classe une paire de langues en « très faibles ressources ». Et il est à ~80 % de
-registre biblique : élargir les domaines (langue courante, santé, agriculture, presse)
-est la priorité qui traverse la feuille de route.
-
-Les données ne sont pas dans git, pour des raisons de droits et de volume — voir
-[Données et licences](#données-et-licences).
-
-## Ce que l'analyse de tokenisation a montré
-
-Avant d'entraîner quoi que ce soit, j'ai mesuré comment les tokeniseurs pré-entraînés
-se comportent sur le sar
-([`scripts/eval_tokenizers.py`](scripts/eval_tokenizers.py) ;
-rapport complet dans [`docs/TOKENIZATION.md`](docs/TOKENIZATION.md)) :
+Première étape : mesurer comment les tokeniseurs pré-entraînés se comportent sur le sar
+([`scripts/eval_tokenizers.py`](scripts/eval_tokenizers.py) ; rapport dans
+[`docs/TOKENIZATION.md`](docs/TOKENIZATION.md)).
 
 | Tokeniseur | Aller-retour exact (sar) | Fertilité (tokens/mot) | `<unk>` / 1 000 tokens |
 |---|---|---|---|
@@ -49,52 +29,73 @@ rapport complet dans [`docs/TOKENIZATION.md`](docs/TOKENIZATION.md)) :
 | ByT5 (niveau octet) | 100 % | 6,22 | 0 |
 | XLM-R / mBART-50 / AfroXLM-R | 55 % | 2,85 | 14,2 |
 
-Aucun tokeniseur existant ne traite le sar sans perte. NLLB — le meilleur des quatre,
-et la cible du fine-tuning — supprime silencieusement quatre caractères (`ḭ ḛ ṵ ȳ`,
-des voyelles nasales et un ton bas) : 27 % des phrases contiennent alors au moins un
-`<unk>` irréversible. La conclusion pour la thèse est d'étendre le tokeniseur de NLLB
-(caractères manquants, sous-mots sar, jeton de langue `sar_Latn`) avant tout
-entraînement, plutôt que de le prendre tel quel.
+Aucun tokeniseur pré-entraîné ne traite le sar sans perte : NLLB, le meilleur des
+quatre, supprime silencieusement quatre caractères (`ḭ ḛ ṵ ȳ` — voyelles nasales et
+ton bas), et 27 % des phrases contiennent alors au moins un `<unk>` irréversible. Le
+sar est aussi fragmenté 2,4 fois plus que le français par le même modèle.
 
-## Le plan
+Ces chiffres **confirment et quantifient le problème** posé par la thèse ; ils ne
+valident encore aucune méthode. Ils portent sur des tokeniseurs *transférés* : un BPE
+entraîné directement sur le corpus sar n'aurait pas de `<unk>`, mais la fragmentation
+et l'incohérence des frontières — ce que la méthode proposée doit corriger — restent
+entières.
 
-0. **Socle de données** *(en cours)* — un corpus canonique unique, normalisé
-   (Unicode NFC, encodage homogène de la nasalité), avec des découpes train/dev/test
-   gelées et sans fuite d'un ensemble à l'autre.
-1. **Tokenisation** — tokeniseur NLLB étendu, aller-retour sans perte, figé.
-2. **Première traduction** — NLLB-200-distilled-600M affiné en LoRA, sar↔français,
-   évalué en chrF++ et par un locuteur, publié sur le Hub Hugging Face.
-3. **Agrandir le corpus** — boucle « suggestion machine → correction humaine » sur la
-   plateforme, plus rétro-traduction, pour viser 30 000 puis 50 000 paires et faire
-   baisser la part biblique.
-4. **Modèle de langue sar** — adaptation d'un encodeur sur le sar monolingue.
-5. **Outils** — correcteur orthographique, étiquetage morphosyntaxique, reconnaissance
-   et synthèse vocale, dictionnaire numérique.
+Sous-résultat pour la question des conventions orthographiques : la nasalité est
+encodée de **deux façons incohérentes** dans le corpus actuel — voyelles précomposées
+(`ḭ ḛ ṵ`) d'un côté, base + diacritique combinant (`a̰ o̰ ə̰`) de l'autre. À homogénéiser
+et à faire confirmer par un locuteur ou une source de référence.
 
-Les entraînements se font sur Colab / Kaggle gratuit : LoRA en 4 bits, reprises après
-interruption, pas de pré-entraînement à partir de zéro. Détail des critères de passage
-d'une étape à l'autre dans [`docs/ROADMAP.md`](docs/ROADMAP.md).
+## Où en est le corpus — septembre 2026
+
+12 717 paires sar–français : 8 726 issues de la Bible, 3 193 du dictionnaire, 798 d'un
+lexique sara ; environ 12 450 phrases sar distinctes après retrait des doublons.
+S'ajoutent 26 389 lignes de sar monolingue (~342 000 mots). Le vocabulaire sar observé
+compte ~11 400 formes, dont 739 hapax ; les 2 000 plus fréquentes couvrent 93 % des
+occurrences. 100 000 phrases françaises (Tatoeba) sont disponibles comme corpus de
+comparaison.
+
+Le corpus est encore petit et à ~80 % de registre biblique — deux limites que le
+premier lot de travail vise directement. Les données ne sont pas dans git (droits,
+volume) : voir [Données et licences](#données-et-licences).
+
+## Prochaines étapes
+
+Les lots de travail de la thèse (détail dans le PDF) :
+
+1. **Corpus** — l'étendre au-delà des textes bibliques et de la cosmogonie déjà
+   rassemblés ; faire confirmer les conventions de notation des tons par un locuteur ou
+   une source de référence ; annotation de validation sur échantillon, avec la
+   traduction française des unités lexicales.
+2. **Méthode** — séparer les couches phonologiques du sar (voyelle, nasalité, ton) en
+   flux de tokens distincts, sur le modèle du précédent mixtèque de Yoloxóchitl, et
+   intégrer une contrainte morphologique aux fusions.
+3. **Évaluation** — comparer la méthode à BPE et WordPiece sur le corpus sar : entropie
+   de Rényi de la distribution des tokens, taille de vocabulaire à couverture donnée,
+   au moins une tâche aval (classification ou étiquetage).
+4. **Généralisation** — appliquer la méthode à une seconde langue sara-baguirmienne
+   (probablement le ngambay), avec les mêmes critères.
+5. **Validation appliquée** — prototype de reconnaissance vocale sur un vocabulaire
+   médical restreint, pour des zones où le français n'est pas la langue du quotidien.
 
 ## Organisation
 
-Trois dépôts, sans dépendances de code entre eux, avec des contraintes de licence et
-des déploiements distincts :
+Trois dépôts, sans dépendances de code entre eux :
 
 | Dépôt | Rôle | Pile |
 |---|---|---|
-| **`sar-nlp`** (ici) | recherche : corpus, tokenisation, modèles, évaluation | Python |
-| [`khalima-backend`](https://github.com/Titembaye/khalima-backend) | API de la plateforme d'annotation DATA4CHAD | Django, PostgreSQL |
+| **`sar-nlp`** (ici) | corpus, extraction, analyse de tokenisation, expériences | Python |
+| [`khalima-backend`](https://github.com/Titembaye/khalima-backend) | API de la plateforme d'annotation DATA4CHAD (lot 1) | Django, PostgreSQL |
 | [`khalima-frontend`](https://github.com/Titembaye/khalima-frontend) | interface d'annotation (phrase/mot, bidirectionnelle, clavier sar) | React, Vite |
 
 La plateforme DATA4CHAD ([data4chad.vercel.app](https://data4chad.vercel.app)) sert à
-collecter et corriger les traductions à la main ; ses exports alimentent
+l'annotation et à la validation par des locuteurs ; ses exports alimentent
 `data/annotation_ready/`.
 
 ```
 sar-nlp/
 ├── scripts/          extraction des sources, construction du corpus, tokenisation
-├── notebooks/        finetune_nllb_sar.ipynb  — fine-tuning NLLB-200 + LoRA (brouillon)
-├── docs/             ROADMAP, TOKENIZATION, ENCODING (orthographe sar), SOURCES
+├── notebooks/        finetune_nllb_sar.ipynb  — expérience NLLB-200 + LoRA (brouillon)
+├── docs/             projet de thèse, TOKENIZATION, ENCODING (orthographe sar), SOURCES
 ├── data/             suivi par DVC — voir data/README.md
 └── config.json       sources, schéma de sortie, filtres de qualité
 ```
@@ -109,16 +110,17 @@ pip install -r requirements-dev.txt
 dvc pull        # accès au remote à demander au mainteneur
 ```
 
-Le code est sous licence MIT ([`LICENSE`](LICENSE)). Les données ne le sont pas et
-gardent leurs conditions propres :
+Le code est sous licence MIT ([`LICENSE`](LICENSE)). Les données gardent leurs
+conditions propres :
 
 - **Bible SARDC** — © Alliance Biblique du Tchad, 2006/2010, non redistribuable
+  (demande d'autorisation en cours)
 - **Dictionnaire sar** — licence à clarifier avec les auteurs
 - **Cosmogonie** — © OSSEC 2015, autorisation requise
 - **Tatoeba (français)** — CC-BY 2.0 FR, redistribuable avec attribution
 
-Seuls les modèles entraînés et les données produites via DATA4CHAD peuvent être
-diffusés librement. Provenance détaillée dans [`docs/SOURCES.md`](docs/SOURCES.md).
+Seuls les modèles et outils produits, et les données créées via DATA4CHAD, pourront
+être diffusés librement. Provenance détaillée : [`docs/SOURCES.md`](docs/SOURCES.md).
 
 ## Mise en route
 
@@ -134,12 +136,11 @@ python -m scripts.dictionary.pipeline
 python -m scripts.bible.pipeline
 python -m scripts.sara_lexicon.extract
 python -m scripts.cosmogonie.process
-python -m scripts.tatoeba.fetch
-python -m scripts.build_corpus            # fusion + découpes train/val
+python -m scripts.build_corpus            # fusion + découpes
 python -m scripts.prepare_annotation      # exports pour la plateforme
 ```
 
-Rejouer l'évaluation des tokeniseurs : `python -m scripts.eval_tokenizers --sample 3000`.
+Rejouer l'analyse des tokeniseurs : `python -m scripts.eval_tokenizers --sample 3000`.
 
 ## Citer ce travail
 
