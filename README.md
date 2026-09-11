@@ -92,10 +92,8 @@ l'annotation et à la validation par des locuteurs ; ses exports alimentent
 ```
 sar-nlp/
 ├── scripts/          extraction des sources, construction du corpus, tokenisation
-├── notebooks/        finetune_nllb_sar.ipynb  — expérience NLLB-200 + LoRA (brouillon)
 ├── docs/             projet de thèse (PDF)
-├── data/             suivi par DVC — voir data/README.md
-└── config.json       sources, schéma de sortie, filtres de qualité
+└── data/             suivi par DVC — voir data/README.md
 ```
 
 ## Données et licences

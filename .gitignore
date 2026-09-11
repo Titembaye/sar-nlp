@@ -59,4 +59,11 @@ wandb/
 !/docs/projet_these*.pdf
 
 # ---- Exclus du repo pour l'instant ----
+# run.py : code mort, imports vers des modules qui n'existent plus
+# scripts/cosmogonie/legacy_extract_cosmogonie.py : idem, remplacé par process.py
+# notebooks/ : brouillon (fine-tuning NLLB) hors des 5 lots de la thèse
+# config.json : non lu par aucun script, redondant avec data/README.md
 /run.py
+/scripts/cosmogonie/legacy_extract_cosmogonie.py
+/notebooks/
+/config.json
