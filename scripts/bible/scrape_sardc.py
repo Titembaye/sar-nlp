@@ -1,3 +1,27 @@
+"""Collecte la Bible SARDC (sar) depuis bible.com par scraping navigateur.
+
+La Bible SARDC (Alliance Biblique du Tchad, 2006/2010) n'est pas disponible en
+téléchargement direct ; ce script pilote un navigateur headless (Playwright) pour
+visiter chaque chapitre de bible.com/fr/bible/445 (version SARDC) et en extraire
+les versets, d'abord par une regex sur le HTML rendu, avec un repli JS
+(`page.evaluate`) si la regex ne trouve rien (mise en page différente selon les
+livres). Un verset est repéré par son attribut `data-usfm` (ex. `GEN.1.1`).
+
+Reprise sur interruption : les couples (livre, chapitre) déjà présents dans le
+fichier de sortie sont relus au démarrage et sautés (`load_existing_verses` +
+`done_refs`), donc on peut relancer le script après une coupure sans dupliquer
+ni perdre de progrès.
+
+Respect du serveur : `DELAY` secondes entre deux requêtes.
+
+⚠️ Licence : ce corpus est © Alliance Biblique du Tchad — ne pas redistribuer
+sans autorisation (voir data/README.md). Ce script sert à la collecte pour usage
+de recherche, pas à la republication du texte biblique.
+
+Usage :
+    pip install playwright && playwright install chromium
+    python -m scripts.bible.scrape_sardc
+"""
 import json
 import re
 import time
@@ -30,20 +54,38 @@ DELAY = 1.0
 OUTPUT_JSONL = Path("data/raw/bible/sardc_corpus.jsonl")
 
 
-def load_done_refs() -> set[tuple[str, int]]:
-    done = set()
+def load_existing_verses() -> list[dict]:
+    """Relit les versets déjà scrapés dans `OUTPUT_JSONL`, s'il existe.
+
+    Nécessaire pour la reprise : `main` écrase `OUTPUT_JSONL` à chaque exécution
+    (voir sa docstring), donc il faut recharger l'existant ici puis le combiner
+    aux nouveaux versets avant de réécrire, sous peine de perdre les chapitres
+    déjà collectés lors d'une exécution précédente.
+    """
+    verses = []
     if OUTPUT_JSONL.exists():
         with open(OUTPUT_JSONL, encoding='utf-8') as f:
             for line in f:
                 try:
-                    v = json.loads(line)
-                    done.add((v['book'], v['chapter']))
+                    verses.append(json.loads(line))
                 except Exception:
                     pass
-    return done
+    return verses
+
+
+def done_refs(existing_verses: list[dict]) -> set[tuple[str, int]]:
+    """Ensemble des chapitres (livre, numéro) déjà présents parmi `existing_verses`,
+    pour sauter ces chapitres au lieu de les re-scraper."""
+    return {(v['book'], v['chapter']) for v in existing_verses}
 
 
 def extract_verses(page_handle, book, chapter):
+    """Extrait les versets d'un chapitre déjà chargé dans `page_handle`.
+
+    Essaie d'abord une regex sur le HTML rendu (rapide) ; si elle ne trouve
+    aucun verset (mise en page différente), retombe sur une extraction en JS
+    via `data-usfm`, plus lente mais plus robuste.
+    """
     try:
         page_handle.wait_for_selector("div[class*='chapter']", timeout=15000)
     except Exception:
@@ -96,12 +138,21 @@ def extract_verses(page_handle, book, chapter):
 
 
 def main() -> None:
+    """Parcourt tous les livres/chapitres de `BOOKS`, saute ceux déjà scrapés,
+    et réécrit `OUTPUT_JSONL` avec l'ensemble (anciens + nouveaux versets).
+
+    Reprenable : si le script est interrompu, les chapitres déjà écrits lors
+    d'une exécution précédente sont rechargés (`load_existing_verses`) puis
+    sautés (`done_refs`) plutôt que re-scrapés, et réécrits tels quels avec les
+    nouveaux à la fin — aucune perte de progrès d'une exécution à l'autre.
+    """
     if sync_playwright is None:
         raise RuntimeError("Playwright is not installed. Install with: pip install playwright")
 
     print("Scraping SARDC Bible corpus...")
-    done = load_done_refs()
-    all_verses = []
+    existing_verses = load_existing_verses()
+    done = done_refs(existing_verses)
+    all_verses = list(existing_verses)  # on repart de l'existant, pas d'une liste vide
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -138,7 +189,8 @@ def main() -> None:
         for v in all_verses:
             f.write(json.dumps(v, ensure_ascii=False) + '\n')
 
-    print(f"\n{len(all_verses)} verses scraped -> {OUTPUT_JSONL}")
+    new_count = len(all_verses) - len(existing_verses)
+    print(f"\n{new_count} new verses ({len(all_verses)} total) -> {OUTPUT_JSONL}")
 
 
 if __name__ == '__main__':

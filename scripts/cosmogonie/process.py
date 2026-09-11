@@ -1,3 +1,18 @@
+"""Découpe le texte de la cosmogonie sar (monolingue) en phrases et en paragraphes.
+
+Source : `data/raw/cosmogonie/cosmogonie_sar_texte.txt`, texte extrait du PDF
+"mwm_Cosmogonie_Sar_2015.pdf" (© OSSEC 2015), avec des marqueurs `--- Page n ---`
+conservés dans le fichier texte pour tracer la pagination d'origine.
+
+Produit deux granularités à partir du même texte : `cosmogonie_sentences.jsonl`
+(une phrase par ligne, pour le corpus monolingue sar) et
+`cosmogonie_paragraphs.jsonl` (unité plus longue, utile si le découpage en
+phrases perd du contexte narratif). Il n'y a pas de traduction française
+disponible pour ce texte — c'est une source purement monolingue sar.
+
+Usage :
+    python -m scripts.cosmogonie.process
+"""
 import json
 import re
 from pathlib import Path
@@ -7,7 +22,7 @@ OUTPUT_SENTENCES = Path("data/processed/cosmogonie/cosmogonie_sentences.jsonl")
 OUTPUT_PARAGRAPHS = Path("data/processed/cosmogonie/cosmogonie_paragraphs.jsonl")
 
 PAGE_MARKER = re.compile(r'^---\s*Page\s*(\d+)\s*---$')
-MIN_SENTENCE_CHARS = 8
+MIN_SENTENCE_CHARS = 8  # en dessous, probablement un artefact de découpage, pas une vraie phrase
 
 
 def _iter_clean_lines(text: str):
@@ -40,6 +55,8 @@ def _split_sentences(line: str) -> list[str]:
 
 
 def extract_sentences(text: str) -> list[dict]:
+    """Découpe tout le texte en phrases (via `_iter_clean_lines` + `_split_sentences`),
+    chacune associée à son numéro de page d'origine."""
     entries = []
     sid = 0
     for page, line in _iter_clean_lines(text):
@@ -55,6 +72,8 @@ def extract_sentences(text: str) -> list[dict]:
 
 
 def extract_paragraphs(text: str) -> list[dict]:
+    """Regroupe les lignes consécutives (séparées par une ligne vide ou un
+    changement de page) en paragraphes, chacun rattaché à sa page de départ."""
     current_page = 0
     paragraphs: list[tuple[int, list[str]]] = []
     current: list[str] = []
@@ -85,6 +104,7 @@ def extract_paragraphs(text: str) -> list[dict]:
 
 
 def _write_jsonl(path: Path, entries: list[dict]) -> None:
+    """Écrit une liste de dicts en JSONL (un objet JSON par ligne)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f:
         for entry in entries:
@@ -96,6 +116,7 @@ def main(
     sentences_path: Path = OUTPUT_SENTENCES,
     paragraphs_path: Path = OUTPUT_PARAGRAPHS,
 ) -> tuple[Path, Path]:
+    """Lit le texte source et écrit les deux granularités (phrases, paragraphes)."""
     if not input_path.exists():
         raise FileNotFoundError(f"Input not found: {input_path}")
 

@@ -1,3 +1,12 @@
+"""Étape 3/3 du pipeline dictionnaire : entrées structurées -> paires d'exemples CSV.
+
+Aplati les exemples sar/fr de chaque entrée structurée (`common.
+extract_dictionary_example_pairs`) et les écrit en CSV — c'est ce fichier qui
+alimente `sar_fr_all_pairs.jsonl` via `scripts/build_corpus.py`.
+
+Usage :
+    python -m scripts.dictionary.export
+"""
 from pathlib import Path
 import json
 

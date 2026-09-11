@@ -1,3 +1,18 @@
+"""Logique partagée du pipeline dictionnaire sar (extraction PDF -> paires FR-SAR).
+
+Le dictionnaire source (`data/raw/dictionary/sar_dictionary.pdf`, Keegan & Gotengaye)
+est traité en trois étapes, chacune un script séparé qui réutilise ce module :
+
+    extract.py   PDF -> texte brut            (RAW_TEXT_PATH)
+    process.py   texte brut -> entrées structurées (STRUCTURED_PATH, JSON)
+    export.py    entrées structurées -> paires d'exemples FR-SAR (PAIRS_OUTPUT_PATH, CSV)
+
+`pipeline.py` enchaîne les trois. Le point délicat de tout le module est
+`CHAR_CORRECTIONS` : les polices embarquées dans le PDF (SILDoulosIPA93,
+SaraBagirmiTimes) ont des CMaps ToUnicode défectueuses, donc PyMuPDF extrait des
+codepoints erronés qu'il faut corriger explicitement avant toute analyse (voir
+docs sur l'orthographe du sar pour le détail des caractères concernés).
+"""
 import csv
 import json
 import re
@@ -14,8 +29,12 @@ RAW_TEXT_PATH = Path("data/intermediate/dictionary/sar_dictionary_raw.txt")
 STRUCTURED_PATH = Path("data/intermediate/dictionary/sar_dictionary_structured.json")
 PAIRS_OUTPUT_PATH = Path("data/processed/dictionary/sar_dictionary_example_pairs.csv")
 
+# Étiquettes grammaticales reconnues en tête d'un bloc de définition (ex. "N" nom,
+# "VT" verbe transitif...) : sert à repérer où commence chaque acception d'une entrée.
 POS_TAGS = {'AV', 'VT', 'VI', 'N', 'ADJ', 'ADV', 'CNJ', 'AUX', 'V', 'PRA', 'LOC', 'INS', 'INJ', 'INT', 'C', 'ID'}
 
+# Caractères diacritiques propres au sar : leur présence dans une phrase du PDF
+# signale que c'est probablement l'exemple en sar (par opposition à sa traduction FR).
 SAR_EXAMPLE_PATTERN = r'[ɨəɔɛɲʉŋƖḭḛḿṵāīēōūìîǹ]'
 
 # Corrections for PDF font encoding errors.
@@ -46,6 +65,8 @@ CHAR_CORRECTIONS = {
 
 
 def fix_char_encoding(text: str) -> str:
+    """Applique les corrections de `CHAR_CORRECTIONS`, compresse les espaces
+    multiples laissés par la suppression des artefacts PUA, puis normalise en NFC."""
     for wrong, correct in CHAR_CORRECTIONS.items():
         text = text.replace(wrong, correct)
     text = re.sub(r' {2,}', ' ', text)
@@ -53,6 +74,11 @@ def fix_char_encoding(text: str) -> str:
 
 
 def extract_pdf_text(pdf_path: str) -> str:
+    """Extrait le texte brut du PDF page par page (PyMuPDF) et corrige l'encodage.
+
+    Chaque page est préfixée par un marqueur `--- PAGE n ---` pour garder une trace
+    de la pagination d'origine dans le texte brut en sortie.
+    """
     if fitz is None:
         raise RuntimeError("PyMuPDF is not installed. Install with: pip install pymupdf")
 
@@ -66,12 +92,16 @@ def extract_pdf_text(pdf_path: str) -> str:
 
 
 def repair_line_breaks(text: str) -> str:
+    """Recolle les mots coupés par un tiret de fin de ligne (justification du PDF)
+    et réduit les sauts de ligne multiples à un seul."""
     text = re.sub(r'([^\-\s])-\n([^\-\s])', r'\1\2', text)
     text = re.sub(r'\n+', '\n', text)
     return text
 
 
 def find_dictionary_start(text: str) -> int:
+    """Retourne l'index de LIGNE où commence le corps du dictionnaire (après la
+    page de titre / le sommaire), en repérant l'en-tête "Sar - Français"."""
     for i, line in enumerate(text.splitlines()):
         if re.search(r'^Sar\s*-\s*Fran[çc]ais', line):
             return i
@@ -79,12 +109,21 @@ def find_dictionary_start(text: str) -> int:
 
 
 def clean_line(line: str) -> str:
+    """Normalise une ligne en NFC et retire la numérotation de page en tête."""
     line = normalize('NFC', line)
     line = re.sub(r'^\d+\s+', '', line)
     return line.strip()
 
 
 def extract_pos_and_gloss(line: str) -> tuple[str, str] | None:
+    """Repère l'étiquette grammaticale en tête d'un bloc de définition et extrait
+    la glose française qui suit (jusqu'au premier point, avec une extension
+    heuristique si la glose semble coupée en plein milieu d'une abréviation).
+
+    Returns:
+        `(pos, gloss)` si la ligne commence par une étiquette de `POS_TAGS`
+        suivie d'une glose exploitable (> 2 caractères), sinon `None`.
+    """
     match = re.match(r'^([A-Z]+)\s+(.+)', line, re.DOTALL)
     if not match:
         return None
@@ -113,6 +152,15 @@ def extract_pos_and_gloss(line: str) -> tuple[str, str] | None:
 
 
 def extract_examples(definition_text: str) -> list[dict]:
+    """Repère les paires d'exemples sar/français dans un bloc de définition.
+
+    Découpe le texte en phrases, puis apparie chaque phrase contenant des
+    caractères sar (`SAR_EXAMPLE_PATTERN`) avec la phrase suivante quand celle-ci
+    n'en contient pas (heuristique : exemple sar suivi de sa traduction FR).
+
+    Returns:
+        Une liste de `{'sar': ..., 'fr': ...}`.
+    """
     examples = []
     sentences = re.findall(r'[^.!?]+[.!?]', definition_text)
     if not sentences and definition_text.strip():
@@ -144,10 +192,15 @@ def extract_examples(definition_text: str) -> list[dict]:
 
 
 def is_pos_line(line: str) -> bool:
+    """Vrai si la ligne commence par une étiquette grammaticale (1 à 4 majuscules)."""
     return bool(re.match(r'^[A-Z]{1,4}\s+', line))
 
 
 def is_headword_line(line: str, next_line: str | None) -> bool:
+    """Vrai si `line` est une entrée de dictionnaire (mot-vedette) : contient une
+    transcription phonétique entre crochets, n'est pas elle-même une ligne
+    d'étiquette grammaticale ou une expression/synonyme, est suivie d'une ligne
+    d'étiquette grammaticale, et reste courte (< 45 caractères)."""
     if not line or '[' not in line or ']' not in line:
         return False
     if line.startswith(('Expr:', 'Expr ', 'Syn:')):
@@ -162,6 +215,8 @@ def is_headword_line(line: str, next_line: str | None) -> bool:
 
 
 def group_entries_by_headword(lines: list[str]) -> list[tuple[str, list[str]]]:
+    """Regroupe les lignes du dictionnaire par mot-vedette : chaque groupe est
+    `(mot_vedette, lignes_de_définition_associées)`, jusqu'au prochain mot-vedette."""
     groups = []
     current_headword = None
     current_lines: list[str] = []
@@ -185,10 +240,23 @@ def group_entries_by_headword(lines: list[str]) -> list[tuple[str, list[str]]]:
 
 
 def normalize_headword(headword: str) -> str:
+    """Retire la transcription phonétique entre crochets et normalise en NFC,
+    pour obtenir la forme orthographique seule du mot-vedette."""
     return normalize('NFC', headword.split('[')[0].strip())
 
 
 def extract_structured_entries(raw_text: str) -> list[dict]:
+    """Pipeline complet texte brut -> entrées structurées.
+
+    Recolle les coupures de ligne, saute l'en-tête du PDF, groupe les lignes par
+    mot-vedette, puis découpe chaque groupe en blocs "une acception = une étiquette
+    grammaticale + sa glose + ses exemples éventuels".
+
+    Returns:
+        Une liste de dicts `{id, headword, normalized_headword, pos, gloss_fr,
+        examples, source}`, un par acception (une entrée du dictionnaire peut
+        produire plusieurs acceptions si elle a plusieurs étiquettes grammaticales).
+    """
     raw_text = repair_line_breaks(raw_text)
     start_index = find_dictionary_start(raw_text)
     if start_index > 0:
@@ -230,6 +298,8 @@ def extract_structured_entries(raw_text: str) -> list[dict]:
 
 
 def extract_dictionary_example_pairs(entries: list[dict]) -> list[tuple[str, str]]:
+    """Aplati les exemples de toutes les entrées structurées en une liste de
+    paires `(sar, fr)`, prêtes à écrire en CSV."""
     pairs = []
     for entry in entries:
         for example in entry.get('examples', []):
@@ -241,6 +311,8 @@ def extract_dictionary_example_pairs(entries: list[dict]) -> list[tuple[str, str
 
 
 def write_example_pairs_csv(path: Path, pairs: list[tuple[str, str]]) -> None:
+    """Écrit les paires (sar, fr) en CSV avec en-tête, créant le dossier parent
+    si besoin."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w', encoding='utf-8', newline='') as f:
         writer = csv.writer(f)

@@ -1,3 +1,12 @@
+"""Étape 2/3 du pipeline dictionnaire : texte brut -> entrées structurées.
+
+Regroupe les lignes du texte brut par mot-vedette et découpe chaque groupe en
+acceptions (étiquette grammaticale + glose française + exemples sar/fr) via
+`common.extract_structured_entries`. Écrit le résultat en JSON.
+
+Usage :
+    python -m scripts.dictionary.process
+"""
 import json
 from pathlib import Path
 
