@@ -1,31 +1,23 @@
 # data/samples/
 
-Petits extraits pour illustrer le **format** des données, sans redistribuer les
-corpus sous droits. Contenu volontairement minimal.
+Exemples du format des données, un dossier par source (mêmes noms que dans
+`scripts/`). Le corpus complet n'est pas ici — il est suivi par DVC, voir
+`data/README.md` pour le récupérer et pour le détail des licences.
 
-> **À faire** : ajouter ici `sample_pairs.jsonl` avec ~15 exemples **libres de droits**
-> (phrases construites par le mainteneur, ou extraits Tatoeba CC-BY côté français).
-> Ne pas y copier de versets SARDC ni d'entrées du dictionnaire.
+`tatoeba/` est le seul dossier avec du contenu réel : Tatoeba est en CC-BY,
+donc redistribuable avec attribution. `example.jsonl` reprend 5 phrases telles
+quelles depuis `data/processed/tatoeba/fra_filtered.jsonl`.
 
-## Schéma des paires (`sample_pairs.jsonl`)
+`dictionary/`, `bible/`, `cosmogonie/` et `sara_lexicon/` sont vides — ces
+quatre sources ne sont pas (encore) autorisées à la redistribution. Chaque
+dossier contient juste une note qui le rappelle.
 
-Un objet JSON par ligne :
-
-| Champ | Type | Description |
-|---|---|---|
-| `sar` | string | Phrase en sar, normalisée NFC |
-| `fr` | string | Traduction française |
-| `source` | string | `bible` \| `dictionary` \| `sara_lexicon` \| `cosmogonie` \| `annotation` |
+Format des paires bilingues (`data/processed/sar_fr_all_pairs.jsonl`), une
+ligne JSON par paire :
 
 ```json
-{"sar": "…", "fr": "…", "source": "dictionary"}
+{"sar": "...", "fr": "...", "source": "bible"}
 ```
 
-## Schéma monolingue (`data/processed/sar_monolingual.txt`)
-
-Une phrase sar par ligne, NFC, sans métadonnées.
-
-## Note
-
-Le corpus complet (~12 700 paires + ~26 000 phrases monolingues) est suivi par
-DVC et non redistribué. Voir [`../README.md`](../README.md).
+Le monolingue sar (`data/processed/sar_monolingual.txt`) est juste une phrase
+par ligne, sans métadonnées.
