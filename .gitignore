@@ -53,6 +53,10 @@ wandb/
 *.pdf
 !/docs/projet_these*.pdf
 
-# ---- Exclus du repo pour l'instant (à trancher — cf. ROADMAP Phase 0) ----
+# ---- docs/ : notes de travail internes, non publiées (README = façade publique) ----
+# Seul le PDF du projet de thèse (règle ci-dessus) reste dans le repo.
+/docs/*
+!/docs/projet_these*.pdf
+
+# ---- Exclus du repo pour l'instant ----
 /run.py
-/docs/STRUCTURE.md

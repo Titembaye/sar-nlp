@@ -1,26 +1,24 @@
 # sar-nlp
 
-Corpus, code et premiers résultats pour une thèse de doctorat sur la **tokenisation
-morphologique et tonale** du **sar**, une langue sara du Moyen-Chari et du Mandoul, au
-sud du Tchad (ISO 639-3 [`mwm`](https://iso639-3.sil.org/code/mwm)).
+Ce dépôt rassemble le corpus, le code et les premiers résultats d'une proposition de thèse de doctorat sur la **tokenisation morphologique et tonale** du **sar**, une langue sara du Moyen-Chari et du Mandoul, au sud du Tchad
+(ISO 639-3 [`mwm`](https://iso639-3.sil.org/code/mwm)).
 
 Les tokeniseurs statistiques (BPE, WordPiece, SentencePiece) construisent leur
 vocabulaire en optimisant la fréquence des sous-chaînes de caractères, sans aucune
 connaissance de la morphologie ni de la phonologie de la langue. En sar, où une même
 voyelle porte à la fois le timbre, la nasalité et le ton, ce découpage produit des
-unités linguistiquement incohérentes — et, avec les tokeniseurs pré-entraînés, détruit
+unités linguistiquement incohérentes - et, avec les tokeniseurs pré-entraînés, détruit
 de l'information. La thèse propose de concevoir, valider et évaluer une méthode de
 tokenisation qui sépare et représente explicitement ces couches, puis d'en tester la
-généralisation à une autre langue sara-baguirmienne.
+généralisation à une autre langue sara-baguirmienne. La proposition du projet de thèse complet est disponible dans: [`docs/projet_these.pdf`](docs/projet_these.pdf).
 
-Projet de thèse complet : [`docs/projet_these.pdf`](docs/projet_these.pdf).
-Ce dépôt en est le socle de données et d'expérimentation.
 
-## Prémiers Tets
+## Premiers Tests
 
-Première étape : mesurer comment les tokeniseurs pré-entraînés se comportent sur le sar
-([`scripts/eval_tokenizers.py`](scripts/eval_tokenizers.py) ; rapport dans
-[`docs/TOKENIZATION.md`](docs/TOKENIZATION.md)).
+Afin de mesurer l'impact des tokeniseurs pré-entraînés sur le sar, nous avons évalué
+leur comportement avec [`scripts/eval_tokenizers.py`](scripts/eval_tokenizers.py)
+(méthodologie, limites et reproductibilité documentées dans les commentaires du
+script). Résultats sur un échantillon de 3 000 phrases :
 
 | Tokeniseur | Aller-retour exact (sar) | Fertilité (tokens/mot) | `<unk>` / 1 000 tokens |
 |---|---|---|---|
@@ -95,7 +93,7 @@ l'annotation et à la validation par des locuteurs ; ses exports alimentent
 sar-nlp/
 ├── scripts/          extraction des sources, construction du corpus, tokenisation
 ├── notebooks/        finetune_nllb_sar.ipynb  — expérience NLLB-200 + LoRA (brouillon)
-├── docs/             projet de thèse, TOKENIZATION, ENCODING (orthographe sar), SOURCES
+├── docs/             projet de thèse (PDF)
 ├── data/             suivi par DVC — voir data/README.md
 └── config.json       sources, schéma de sortie, filtres de qualité
 ```
@@ -120,7 +118,7 @@ conditions propres :
 - **Tatoeba (français)** — CC-BY 2.0 FR, redistribuable avec attribution
 
 Seuls les modèles et outils produits, et les données créées via DATA4CHAD, pourront
-être diffusés librement. Provenance détaillée : [`docs/SOURCES.md`](docs/SOURCES.md).
+être diffusés librement.
 
 ## Mise en route
 
